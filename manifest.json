@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "SHLX Auto Next",
+  "version": "1.0",
+  "description": "Tự treo bài và tự chuyển sang mục tiếp theo khi tiến trình đạt 100% trên LMS SHLX.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://loctho.lms.shlx.vn/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://loctho.lms.shlx.vn/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "SHLX Auto Next"
+  }
+}

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>SHLX Auto Next</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      padding: 10px;
+      min-width: 260px;
+    }
+    h1 {
+      font-size: 16px;
+      margin: 0 0 8px;
+    }
+    label {
+      display: block;
+      margin: 6px 0 2px;
+      font-size: 13px;
+    }
+    input[type="number"] {
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .row {
+      margin-bottom: 8px;
+    }
+    .status {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #555;
+    }
+    .info-box {
+      margin-top: 8px;
+      padding: 6px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .info-box div {
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>SHLX Auto Next</h1>
+
+  <div class="row">
+    <label>
+      <input type="checkbox" id="enabled" />
+      Bật Auto Next trên trang này
+    </label>
+  </div>
+
+  <div class="row">
+    <label for="interval">Thời gian kiểm tra (ms):</label>
+    <input type="number" id="interval" min="1000" step="1000" />
+    <small>Ví dụ: 5000 = 5 giây</small>
+  </div>
+
+  <div class="row">
+    <label for="threshold">% hoàn thành để tự next:</label>
+    <input type="number" id="threshold" min="50" max="100" />
+    <small>98 hoặc 100 tuỳ hệ thống</small>
+  </div>
+
+  <div class="row">
+  <label for="refreshInterval">Tự refresh trang (giây):</label>
+  <input type="number" id="refreshInterval" min="0" step="10" />
+  <small>0 = tắt auto refresh</small>
+</div>
+
+
+  <button id="save">Lưu</button>
+
+  <!-- Hộp thông tin trạng thái -->
+  <div class="info-box">
+    <div><b>Trang hiện tại:</b> <span id="currentLesson">Đang đọc...</span></div>
+    <div><b>% hiện tại:</b> <span id="currentProgress">?</span></div>
+    <div><b>Trang sắp next:</b> <span id="nextLesson">Đang dò...</span></div>
+    <div><b>Có video:</b> <span id="hasVideo">Không rõ</span></div>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
