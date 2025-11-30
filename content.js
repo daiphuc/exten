@@ -24,7 +24,7 @@ let lastRefreshTime = Date.now();
 
 // Cache bài học
 let lessonButtons = null;
-let lastLessonScanTime = 0; // ms
+let lastLessonScanTime = 0;
 let lastProgressSnapshot = { value: 0, ts: 0 };
 
 // --------- LOAD SETTINGS LÚC ĐẦU ----------
@@ -49,14 +49,14 @@ function normalize(str) {
   return (str || "").toLowerCase().replace(/\s+/g, " ").trim();
 }
 
-// Có video hay không (nhẹ)
+// Có video hay không
 function hasVideoOnPage() {
   const yt = document.querySelector('iframe[src*="youtube.com"]');
   const vid = document.querySelector("video");
   return !!(yt || vid);
 }
 
-// Tìm iframe YouTube (cache)
+// Tìm iframe YouTube
 function findYoutubeIframe() {
   if (ytIframe && ytIframe.contentWindow) return ytIframe;
   ytIframe = document.querySelector('iframe[src*="youtube.com"]');
@@ -66,7 +66,7 @@ function findYoutubeIframe() {
   return ytIframe;
 }
 
-// Gửi lệnh playVideo giống click tay (thỉnh thoảng)
+// Gửi lệnh playVideo định kỳ
 function startYoutubeAutoPlayLoop() {
   if (ytPlayIntervalId) return;
   const iframe = findYoutubeIframe();
@@ -89,7 +89,6 @@ function startYoutubeAutoPlayLoop() {
     }
   };
 
-  // 15s gửi 1 lần cho nhẹ, dừng hẳn nếu disable
   ytPlayIntervalId = setInterval(() => {
     if (!settings.enabled) {
       stopYoutubeAutoPlayLoop();
@@ -106,14 +105,13 @@ function stopYoutubeAutoPlayLoop() {
   }
 }
 
-// Đọc % tiến trình (TỐI ƯU)
+// Đọc % tiến trình
 function getProgress(force = false) {
   const now = Date.now();
   if (!force && now - lastProgressSnapshot.ts < PROGRESS_CACHE_MS) {
     return lastProgressSnapshot.value;
   }
 
-  // 1) Thanh progress chính
   const progressEl = document.querySelector("progress.euiProgress");
   if (progressEl) {
     const val = progressEl.value || progressEl.getAttribute("value");
@@ -124,7 +122,6 @@ function getProgress(force = false) {
     }
   }
 
-  // 2) Text hiển thị % bên cạnh
   const percentText =
     document.querySelector(".euiText.css-unjyk3-euiText-s-euiTextAlign-right") ||
     document.querySelector(".euiText");
@@ -139,18 +136,18 @@ function getProgress(force = false) {
     }
   }
 
-  // 3) Không cố scan toàn trang nữa – trả 0 cho nhẹ
   lastProgressSnapshot = { value: 0, ts: now };
   return 0;
 }
 
-// Cache danh sách lesson buttons (ít rescan)
+// Cache danh sách bài học
 function getLessonButtons() {
   const now = Date.now();
-  // nếu đã cache trong 60s thì dùng lại luôn
+
   if (lessonButtons && now - lastLessonScanTime < LESSON_CACHE_TTL) {
     return lessonButtons;
   }
+
   lessonButtons = Array.from(document.querySelectorAll("button.euiLink"));
   lastLessonScanTime = now;
   return lessonButtons;
@@ -161,6 +158,7 @@ function invalidateLessonCache() {
   lastLessonScanTime = 0;
 }
 
+// reset cache khi click
 document.addEventListener(
   "click",
   (evt) => {
@@ -171,7 +169,7 @@ document.addEventListener(
   { capture: true }
 );
 
-// Lấy thông tin bài hiện tại & kế tiếp
+// Lấy bài hiện tại + kế tiếp
 function getLessonInfo() {
   const h1 = document.querySelector("h1.euiTitle");
   const currentTitle =
@@ -185,7 +183,6 @@ function getLessonInfo() {
 
   let currentIndex = -1;
 
-  // 1) match text với H1
   for (let i = 0; i < buttons.length; i++) {
     const t = (buttons[i].textContent || "").trim();
     const tn = normalize(t);
@@ -200,7 +197,6 @@ function getLessonInfo() {
     }
   }
 
-  // 2) nếu chưa, dùng font-weight đậm (chỉ scan 1 lần khi cần)
   if (currentIndex === -1) {
     for (let i = 0; i < buttons.length; i++) {
       const fw = window.getComputedStyle(buttons[i]).fontWeight;
@@ -221,64 +217,60 @@ function getLessonInfo() {
   return { currentTitle, currentButton, nextButton };
 }
 
-// ---------- AUTO NEXT ----------
+// ---------- AUTO NEXT (CÓ DELAY 10S SAU KHI NEXT) ----------
 
 function clickNextLesson() {
   const info = getLessonInfo();
   if (info.nextButton) {
     console.log("[SHLX AutoNext] Next to:", info.nextButton.textContent.trim());
+
     info.nextButton.click();
+
+    // ❗ SAU KHI NEXT → DỪNG LOOP 10 GIÂY
+    console.log("[SHLX AutoNext] Đã next bài — chờ 10 giây để trang load...");
+    clearLoopTimer();
+
+    setTimeout(() => {
+      console.log("[SHLX AutoNext] Bắt đầu kiểm tra lại sau khi chờ 10s!");
+      waitingNext = false;
+      startLoop(); // chạy lại loop chính
+    }, 10000);
+
   } else {
     console.log("[SHLX AutoNext] No next lesson found.");
   }
 }
 
-// ---------- LOOP CHÍNH (TỐI ƯU) ----------
+// ---------- LOOP CHÍNH ----------
 
 function loopCheck() {
   if (!settings.enabled) return;
 
-  // 1) AUTO REFRESH (rất nhẹ)
+  // Auto refresh
   if (settings.refreshSec && settings.refreshSec > 0) {
     const now = Date.now();
     const elapsedSec = (now - lastRefreshTime) / 1000;
     if (elapsedSec >= settings.refreshSec) {
-      console.log(
-        "[SHLX AutoNext] Auto refresh sau",
-        settings.refreshSec,
-        "giây"
-      );
+      console.log("[SHLX AutoNext] Auto refresh...");
       lastRefreshTime = Date.now();
       location.reload();
       return;
     }
   }
 
-  // 2) Nếu có video thì bật YouTube play loop (nhẹ, chạy riêng)
   const hasVideo = hasVideoOnPage();
-  if (hasVideo) {
-    startYoutubeAutoPlayLoop();
-  } else {
-    stopYoutubeAutoPlayLoop();
-  }
 
-  // 3) Đọc % (đã tối ưu)
+  if (hasVideo) startYoutubeAutoPlayLoop();
+  else stopYoutubeAutoPlayLoop();
+
   const p = getProgress();
   console.log("[SHLX AutoNext] Progress:", p + "%");
 
-  // 4) Auto next khi đủ %
+  // Auto next ngay (delay đã đưa vào clickNextLesson)
   if (p >= settings.threshold && !waitingNext) {
     waitingNext = true;
-    console.log(
-      "[SHLX AutoNext] Reached",
-      p + "%, waiting 5s before next lesson..."
-    );
-    setTimeout(() => {
-      if (settings.enabled) {
-        clickNextLesson();
-      }
-      waitingNext = false;
-    }, 5000);
+    console.log("[SHLX AutoNext] Đủ % → next ngay.");
+    clickNextLesson();
   }
 }
 
@@ -294,6 +286,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     chrome.storage.sync.set(settings);
     console.log("[SHLX AutoNext] Settings updated:", settings);
     startLoop();
+
     sendResponse({ ok: true });
     return;
   }
@@ -302,6 +295,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     const progress = getProgress();
     const info = getLessonInfo();
     const hv = hasVideoOnPage();
+
     sendResponse({
       enabled: settings.enabled,
       progress,
@@ -313,7 +307,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 });
 
-// ---------- START LOOP ----------
+// ---------- LOOP CONTROL ----------
 
 function clearLoopTimer() {
   if (loopTimerId) {
@@ -342,9 +336,7 @@ function queueNextLoop() {
 
     if (typeof window.requestIdleCallback === "function") {
       requestIdleCallback(
-        () => {
-          runLoop();
-        },
+        () => runLoop(),
         { timeout: delay }
       );
     } else {
