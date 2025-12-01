@@ -227,14 +227,14 @@ function clickNextLesson() {
     info.nextButton.click();
 
     // ❗ SAU KHI NEXT → DỪNG LOOP 10 GIÂY
-    console.log("[SHLX AutoNext] Đã next bài — chờ 10 giây để trang load...");
+    console.log("[SHLX AutoNext] Đã next bài — chờ 5 giây để trang load...");
     clearLoopTimer();
 
     setTimeout(() => {
-      console.log("[SHLX AutoNext] Bắt đầu kiểm tra lại sau khi chờ 10s!");
+      console.log("[SHLX AutoNext] Bắt đầu kiểm tra lại sau khi chờ 5s!");
       waitingNext = false;
       startLoop(); // chạy lại loop chính
-    }, 10000);
+    }, 5000);
 
   } else {
     console.log("[SHLX AutoNext] No next lesson found.");
